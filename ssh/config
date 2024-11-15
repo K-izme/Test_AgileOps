@@ -1,0 +1,21 @@
+Host bastion
+  HostName 52.76.217.36
+  User ubuntu
+  IdentityFile ~/.ssh/agileops.pem
+  ForwardAgent yes
+
+Host app
+  HostName 10.100.0.100
+  User ubuntu
+  ProxyJump bastion
+
+Host db
+  HostName 10.100.0.101
+  User ubuntu
+  ProxyJump bastion
+
+Host external
+  HostName 18.142.15.207
+  User ubuntu
+  IdentityFile ~/.ssh/agileops.pem
+
