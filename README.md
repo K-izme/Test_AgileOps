@@ -2,15 +2,19 @@
 
 For ssh jump, first cat ~/.ssh/id_rsa.pub on local machine. copy it and paste to db,app instance ~/.ssh/authorized_keys
 
+Configure ~/.ssh/config like in the ssh/config file
+
 Testing the ssh to app and db using
 ```
 ssh db
 ssh app
 ```
+If it work, now ansible on our local machine can access to db, app instance through bastion instance
+
 ## 1. MySQL Setup on DB Instance:
 Install and configure MySQL on the DB instance ( 10.100.0.101 ).
 
-Because i can't edit the ip tables or add a NAT Gateway so i think about making db instance can access apt using ssh tunnel:
+Because i can't edit the iptables, make it a NAT gateway or add an AWS NAT Gateway so i think about making db instance can access apt using ssh tunnel:
 ```
 ssh -i ~/.ssh/agileops.pem -D 8080 -f -C -q -N ubuntu@10.100.4.50
 ```
@@ -41,6 +45,14 @@ pip3 install fastapi uvicorn
 
 Prepare a basic API endpoint for verification and expose it securely.
 
+Prepare db for app
+```
+CREATE DATABASE app_db;
+CREATE USER 'app_user'@'10.100.0.100' IDENTIFIED BY '...';
+GRANT ALL PRIVILEGES ON app_db.* TO 'app_user'@'10.100.0.100';
+FLUSH PRIVILEGES;
+```
+
 Create a service for app
 
 ```
@@ -59,6 +71,7 @@ WantedBy=multi-user.target
 ```
 Run the service
 ```
+pip install -r requirements.txt
 sudo systemctl enable uvicorn
 sudo systemctl start uvicorn
 ```
@@ -75,6 +88,19 @@ ansible-playbook -i inventory.ini privatedns.yml -v
 
 Ensure the private DNS server is accessible and functional across the bastion, app, and db instances (but not the external instance).
 
+From Bastion:
+
+![image](https://github.com/user-attachments/assets/e657ad9f-64ee-4763-9929-ed6ccfe4b237)
+
+From App:
+
+![image](https://github.com/user-attachments/assets/2b5b281a-7b40-48e2-87d3-6bef6df63ada)
+
+From DB:
+
+![image](https://github.com/user-attachments/assets/40bb0b19-5d1b-4fe7-8b7a-da0fcdcd81b4)
+
+
 ## 4. NGINX Reverse Proxy with SSL:
 
 Configure NGINX on the Bastion host to act as a reverse proxy for FastAPI, using the domain https://api.lab.aandd.io .
@@ -85,8 +111,17 @@ sudo certbot --nginx -d api.lab.aandd.io --non-interactive --agree-tos --email k
 sudo crontab -e
 0 0 1 * * certbot renew --quiet && systemctl reload nginx
 ```
+This also set up ssl using certbot and renew cert every month
 
 ![image](https://github.com/user-attachments/assets/072b994e-c3d7-4d63-9c4a-f7c97d8a0852)
+
+https://api.lab.aandd.io/health
+
+https://api.lab.aandd.io/signup
+
+https://api.lab.aandd.io/login
+
+https://api.lab.aandd.io/logout
 
 ## 5. Database Access for Analytics:
 - Configure the External instance to connect securely to the MySQL database on the db instance.
@@ -105,7 +140,7 @@ GRANT ALL PRIVILEGES ON *.* TO 'analytics_user'@'10.100.4.50';
 FLUSH PRIVILEGES;
 ```
 
-On external instance
+On external instance, set up an ssh tunnel
 ```
 ssh -f -i ~/.ssh/agileops.pem -N -L 3306:10.100.0.101:3306 ubuntu@52.76.217.36
 ```
