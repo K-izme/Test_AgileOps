@@ -69,9 +69,11 @@ sudo crontab -e
 
 ![image](https://github.com/user-attachments/assets/072b994e-c3d7-4d63-9c4a-f7c97d8a0852)
 
-## 5. 
+## 5. Database Access for Analytics:
+- Configure the External instance to connect securely to the MySQL database on the db instance.
+- Verify database connectivity using phpMyAdmin or a MySQL client from the external instance.
 
-Edit file /etc/mysql/mysql.conf.d/mysqld.cnf
+On db instance, Edit file /etc/mysql/mysql.conf.d/mysqld.cnf
 
 ```
 bind-address = 10.100.0.101
@@ -79,8 +81,23 @@ bind-address = 10.100.0.101
 
 ```
 mysql -u root -p
-CREATE USER 'analytics_user'@'18.142.15.207' IDENTIFIED BY '';
-GRANT ALL PRIVILEGES ON *.* TO 'analytics_user'@'18.142.15.207';
+CREATE USER 'analytics_user'@'10.100.4.50' IDENTIFIED BY '';
+GRANT ALL PRIVILEGES ON *.* TO 'analytics_user'@'10.100.4.50';
 FLUSH PRIVILEGES;
 ```
+
+On external instance
+```
+ssh -f -i ~/.ssh/agileops.pem -N -L 3306:10.100.0.101:3306 ubuntu@52.76.217.36
+```
+Testing the connection
+![image](https://github.com/user-attachments/assets/ae730aa1-bb71-4c7b-8c6b-1c0e84e81afa)
+
+```
+ansible-playbook -i inventory.ini external.yml -v
+```
+Access through http://18.142.15.207/phpmyadmin
+
+![image](https://github.com/user-attachments/assets/243b4b8c-b2fb-41cc-80a1-5b6a8a6820ca)
+
 
