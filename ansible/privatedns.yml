@@ -1,0 +1,31 @@
+- name: Set up Private DNS Server on Bastion
+  hosts: bastion
+  become: true
+  tasks:
+    - name: Install dnsmasq for DNS server
+      apt:
+        name: dnsmasq
+        state: present
+
+    - name: Configure dnsmasq for app.instance.local and db.instance.local
+      copy:
+        dest: /etc/dnsmasq.d/custom-dns.conf
+        content: |
+          address=/app.instance.local/10.100.0.100
+          address=/db.instance.local/10.100.0.101
+        mode: '0644'
+      notify:
+        - Restart dnsmasq
+
+    - name: Ensure dnsmasq service is started and enabled
+      service:
+        name: dnsmasq
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart dnsmasq
+      service:
+        name: dnsmasq
+        state: restarted
+

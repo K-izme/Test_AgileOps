@@ -1,0 +1,45 @@
+- name: Install NGINX and configure reverse proxy with SSL on Bastion
+  hosts: bastion
+  become: true
+  tasks:
+    - name: Install NGINX
+      apt:
+        name: nginx
+        state: present
+
+    - name: Install Certbot for SSL certificates (Let's Encrypt)
+      apt:
+        name: certbot
+        state: present
+
+    - name: Install NGINX plugin for Certbot
+      apt:
+        name: python3-certbot-nginx
+        state: present
+
+    - name: Configure NGINX reverse proxy for FastAPI
+      template:
+        src: nginx_reverse_proxy.j2
+        dest: /etc/nginx/sites-available/api.lab.aandd.io
+        mode: '0644'
+
+    - name: Test NGINX configuration
+      command: nginx -t
+
+    - name: Enable site configuration for NGINX
+      file:
+        src: /etc/nginx/sites-available/api.lab.aandd.io
+        dest: /etc/nginx/sites-enabled/api.lab.aandd.io
+        state: link
+
+    - name: Reload NGINX to apply changes
+      service:
+        name: nginx
+        state: reloaded
+
+    - name: Ensure NGINX is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: true
+

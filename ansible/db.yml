@@ -1,0 +1,66 @@
+---
+- name: Install and configure MySQL on DB instance
+  hosts: db
+  become: true
+  tasks:
+    - name: Install required Python MySQL module (PyMySQL)
+      apt:
+        name: python3-pymysql
+        state: present
+
+    - name: Update APT packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+
+    - name: Ensure MySQL is started and enabled
+      service:
+        name: mysql
+        state: started
+        enabled: true
+
+    - name: Set MySQL root password and secure installation
+      block:
+        - name: Set root password
+          mysql_user:
+            name: root
+            host: localhost
+            password: 
+            login_unix_socket: /var/run/mysqld/mysqld.sock
+
+        - name: Remove anonymous users
+          mysql_user:
+            name: ''
+            host_all: true
+            state: absent
+            login_user: root
+            login_password: 
+            login_unix_socket: /var/run/mysqld/mysqld.sock
+
+        - name: Disallow remote root login
+          mysql_user:
+            name: root
+            host: '%'
+            state: absent
+            login_user: root
+            login_password: 
+            login_unix_socket: /var/run/mysqld/mysqld.sock
+
+        - name: Remove test database
+          mysql_db:
+            name: test
+            state: absent
+            login_user: root
+            login_password: 
+            login_unix_socket: /var/run/mysqld/mysqld.sock
+
+        - name: Reload privilege tables
+          command: mysql -u root -p<password_here> -e "FLUSH PRIVILEGES;"
+      rescue:
+        - debug:
+            msg: "MySQL root password setup failed. Please check the playbook."

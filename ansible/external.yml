@@ -1,0 +1,51 @@
+- name: Set up phpMyAdmin on External instance
+  hosts: external
+  become: true
+  tasks:
+    - name: Update apt repository
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - apache2
+          - php
+          - php-mysql
+          - php-cli
+          - unzip
+        state: present
+
+    - name: Install phpMyAdmin package
+      apt:
+        name: phpmyadmin
+        state: present
+
+    - name: Configure phpMyAdmin to allow remote database access
+      lineinfile:
+        path: /etc/phpmyadmin/config.inc.php
+        insertafter: EOF
+        line: |
+          $cfg['Servers'][1]['host'] = '127.0.0.1';
+          $cfg['Servers'][1]['user'] = 'analytics_user';
+          $cfg['Servers'][1]['password'] = '...';
+          $cfg['Servers'][1]['AllowNoPassword'] = false;
+          $cfg['Servers'][1]['auth_type'] = 'cookie';
+
+    - name: Ensure Apache is running and enabled
+      service:
+        name: apache2
+        state: started
+        enabled: true
+
+    - name: Allow HTTP traffic in UFW (if firewall is enabled)
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+
+    - name: Restart Apache to apply changes
+      service:
+        name: apache2
+        state: restarted
+
