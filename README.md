@@ -40,8 +40,27 @@ pip3 install fastapi uvicorn
 ```
 
 Prepare a basic API endpoint for verification and expose it securely.
+
+Create a service for app
+
 ```
-uvicorn main.py --host 0.0.0.0 --port 8000 --reload
+[Unit]
+Description=Uvicorn instance for FastAPI app
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/app
+ExecStart=uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+Run the service
+```
+sudo systemctl enable uvicorn
+sudo systemctl start uvicorn
 ```
 ![image](https://github.com/user-attachments/assets/deec7158-e0e0-43ca-92a0-a49856231757)
 
