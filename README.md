@@ -1,6 +1,9 @@
 # Test_AgileOps
 
-For ssh jump, first cat ~/.ssh/id_rsa.pub on local machine. copy it and paste to db,app instance ~/.ssh/authorized_keys
+![agileops drawio](https://github.com/user-attachments/assets/18c66455-ab0f-4866-831e-49ee78366f48)
+
+
+For testing ssh jump, first cat ~/.ssh/id_rsa.pub of personal machine. copy it and paste to db,app instance ~/.ssh/authorized_keys
 
 Configure ~/.ssh/config like in the ssh/config file
 
@@ -25,6 +28,8 @@ Acquire::http::Proxy "socks5h://127.0.0.1:8080";
 Acquire::https::Proxy "socks5h://127.0.0.1:8080";
 ```
 
+Now can execute ansible playbook and set up mysql on db instance
+
 ```
 ansible-playbook -i inventory.ini db.yml -v
 ```
@@ -36,16 +41,17 @@ ansible-playbook -i inventory.ini db.yml -v
 
 Install and configure FastAPI on the App instance ( 10.100.0.100 ).
 
-First make the app instance can access apt, then pip3 install through proxy
+First make the app instance can access apt by doing the same thing with we have done with db instance, then pip3 install through proxy
+
 ```
 sudo apt install python3 python3-pip uvicorn python3-socks 
 export ALL_PROXY=socks5://127.0.0.1:8080
 pip3 install fastapi uvicorn
 ```
 
-Prepare a basic API endpoint for verification and expose it securely.
+Prepare a basic API endpoint (in app folder) for verification and expose it securely.
 
-Prepare db for app
+Then ssh into db instance and prepare database for app
 ```
 CREATE DATABASE app_db;
 CREATE USER 'app_user'@'10.100.0.100' IDENTIFIED BY '...';
@@ -53,7 +59,7 @@ GRANT ALL PRIVILEGES ON app_db.* TO 'app_user'@'10.100.0.100';
 FLUSH PRIVILEGES;
 ```
 
-Create a service for app
+Create a service for app on app instance
 
 ```
 [Unit]
@@ -75,6 +81,7 @@ pip install -r requirements.txt
 sudo systemctl enable uvicorn
 sudo systemctl start uvicorn
 ```
+
 ![image](https://github.com/user-attachments/assets/deec7158-e0e0-43ca-92a0-a49856231757)
 
 
@@ -82,6 +89,7 @@ sudo systemctl start uvicorn
 Set up a private DNS server on the Bastion host to resolve:
 - app.instance.local to the app instance’s private IP ( 10.100.0.100 ).
 - db.instance.local to the db instance’s private IP ( 10.100.0.101 ).
+- 
 ```
 ansible-playbook -i inventory.ini privatedns.yml -v
 ```
@@ -90,7 +98,7 @@ Ensure the private DNS server is accessible and functional across the bastion, a
 
 From Bastion:
 
-![image](https://github.com/user-attachments/assets/e657ad9f-64ee-4763-9929-ed6ccfe4b237)
+![image](https://github.com/user-attachments/assets/7236a367-2da0-4cb9-8408-08843a116099)
 
 From App:
 
@@ -100,6 +108,9 @@ From DB:
 
 ![image](https://github.com/user-attachments/assets/40bb0b19-5d1b-4fe7-8b7a-da0fcdcd81b4)
 
+From external:
+
+![image](https://github.com/user-attachments/assets/1a9d3c19-8845-445e-b75e-bee79f0130b8)
 
 ## 4. NGINX Reverse Proxy with SSL:
 
@@ -111,7 +122,7 @@ sudo certbot --nginx -d api.lab.aandd.io --non-interactive --agree-tos --email k
 sudo crontab -e
 0 0 1 * * certbot renew --quiet && systemctl reload nginx
 ```
-This also set up ssl using certbot and renew cert every month
+This also set up ssl using certbot and a cron job to renew cert every month (because it expires every 3 months)
 
 ![image](https://github.com/user-attachments/assets/072b994e-c3d7-4d63-9c4a-f7c97d8a0852)
 
@@ -133,6 +144,8 @@ On db instance, Edit file /etc/mysql/mysql.conf.d/mysqld.cnf
 bind-address = 10.100.0.101
 ```
 
+Create user for analytics and grant privilege
+
 ```
 mysql -u root -p
 CREATE USER 'analytics_user'@'10.100.4.50' IDENTIFIED BY '';
@@ -140,11 +153,14 @@ GRANT ALL PRIVILEGES ON *.* TO 'analytics_user'@'10.100.4.50';
 FLUSH PRIVILEGES;
 ```
 
-On external instance, set up an ssh tunnel
+On external instance, set up an ssh tunnel to secure traffic between the External Instance and the Bastion Host. Uses the Bastion Host to forward requests to the DB Instance.
+
 ```
 ssh -f -i ~/.ssh/agileops.pem -N -L 3306:10.100.0.101:3306 ubuntu@52.76.217.36
 ```
-Testing the connection
+
+Test the connection 
+
 ![image](https://github.com/user-attachments/assets/ae730aa1-bb71-4c7b-8c6b-1c0e84e81afa)
 
 ```
@@ -154,4 +170,5 @@ Access through http://18.142.15.207/phpmyadmin
 
 ![image](https://github.com/user-attachments/assets/243b4b8c-b2fb-41cc-80a1-5b6a8a6820ca)
 
+![image](https://github.com/user-attachments/assets/4c003784-c7cd-4fcf-8344-8f161f7b42c7)
 
