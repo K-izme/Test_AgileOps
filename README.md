@@ -1,7 +1,6 @@
 # Test_AgileOps
 
-![agileops drawio](https://github.com/user-attachments/assets/18c66455-ab0f-4866-831e-49ee78366f48)
-
+![agileops drawio](https://github.com/user-attachments/assets/f452f3cd-8f0a-44e9-a1d7-a160c29bfa3c)
 
 For testing ssh jump, first cat ~/.ssh/id_rsa.pub of personal machine. copy it and paste to db,app instance ~/.ssh/authorized_keys
 
